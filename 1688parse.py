@@ -4,10 +4,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.keys import Keys
 import time
 import os
 import logging
 import sys
+import random
 from datetime import datetime
 import requests
 
@@ -67,7 +69,7 @@ def parse(url):
 
     except NoSuchElementException as e:
         timeString = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-        dev_logger.info("[WARNING] " + e + timeString)
+        dev_logger.info("[WARNING] " + "未進入驗證頁面 " + timeString)
         pass
         
 
@@ -90,6 +92,11 @@ def parse(url):
 
     dev_logger.info("[INFO] " + title + " " + timeString)
 
+    # 捲動頁面，讓第二區塊凸顯示出來
+    actions = ActionChains(browser)
+    for i in range(17):
+        actions.key_down(Keys.PAGE_DOWN).key_up(Keys.PAGE_DOWN).perform()
+        time.sleep(random.uniform(0.4, 1))
 
 
     # 建立 images 資料夾
@@ -99,10 +106,12 @@ def parse(url):
 
     # 第一區圖片
     target_class_1 = browser.find_elements(By.CLASS_NAME, 'detail-gallery-img') # img class
+    
+    # 第二區圖片
+    target_class_2 = browser.find_elements(By.CLASS_NAME, 'desc-img-loaded') # img class
 
-    index = 1
 
-    if len(target_class_1) > 0:
+    if len(target_class_1) or len(target_class_2) > 0:
 
         # 建立該次下載資料夾
         folder = title[:8] + str(int(datetime.now().timestamp()))
@@ -111,24 +120,35 @@ def parse(url):
 
         print("\n--------     開始下載。     --------\n")
 
-    for target in target_class_1:
 
+    index = 0
+    for target in target_class_1:
         # 下載圖片
         link = target.get_attribute("src")
         img = requests.get(link)
         print(link)
-
         with open(f"images\\{folder}\\" + "1_" + str(index+1) + ".jpg", "wb") as file:  # 開啟資料夾及命名圖片檔
             file.write(img.content)  # 寫入圖片的二進位碼
-
         index += 1
-        
         timeString = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-        dev_logger.info("[SUCCESS] " + f"第一區共下載 {index} 個檔案 " + timeString)
+    dev_logger.info("[SUCCESS] " + f"第一區共下載 {index} 個檔案 " + timeString)
+
+
+    index_2 = 0
+    for target in target_class_2:
+        # 下載圖片
+        link = target.get_attribute("src")
+        img = requests.get(link)
+        print(link)
+        with open(f"images\\{folder}\\" + "2_" + str(index_2 + 1) + ".jpg", "wb") as file:  # 開啟資料夾及命名圖片檔
+            file.write(img.content)  # 寫入圖片的二進位碼
+        index_2 += 1
+        timeString = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    dev_logger.info("[SUCCESS] " + f"第二區共下載 {index_2} 個檔案 " + timeString)
+
 
 
     browser.quit()
-
     print("\n\n下載成功。\n\n")
 
 
